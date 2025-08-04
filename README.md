@@ -1,7 +1,6 @@
 # Android 方法耗时统计插件
+最新版本：1.0.0
 
-[![](https://jitpack.io/v/yourusername/method-timer-plugin.svg)](https://jitpack.io/#yourusername/method-timer-plugin)
-[![Build Status](https://github.com/yourusername/method-timer-plugin/workflows/Build%20and%20Test/badge.svg)](https://github.com/yourusername/method-timer-plugin/actions)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 这是一个使用ASM字节码插桩技术的Android Gradle插件，用于统计主线程中的方法耗时，适配AGP 8.0以上版本。
