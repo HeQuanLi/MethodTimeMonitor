@@ -44,3 +44,4 @@ gradlew.bat
 
 # APK files
 *.apk
+gradle.properties
