@@ -72,6 +72,9 @@ methodTimer {
     instrumentationScopeAll.set(false)   // 只插桩项目自身代码（推荐）
 }
 ```
+
+建议参考 Demo 集成方式
+
 ### 4. 查看统计结果
 
 插件现在支持自动打印和手动打印两种方式：
