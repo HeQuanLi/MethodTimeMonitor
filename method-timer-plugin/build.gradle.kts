@@ -5,12 +5,8 @@ import java.util.Properties
 plugins {
     kotlin("jvm") version "2.0.21"
     `java-gradle-plugin`
-    `maven-publish`
-    // signing
+    alias(libs.plugins.vanniktech.mavenPublish)
 }
-
-group = "io.github.hequanli"
-version = "1.0.1"
 
 repositories {
     google()
@@ -28,7 +24,7 @@ dependencies {
 gradlePlugin {
     plugins {
         create("methodTimer") {
-            id = "com.methodtimer.plugin"
+            id = "io.github.hequanli.method-timer"
             implementationClass = "com.hql.methodtimer.plugin.MethodTimerPlugin"
             displayName = "Method Timer Plugin"
             description = "ASM bytecode instrumentation plugin for Android method execution time statistics"
@@ -39,102 +35,73 @@ gradlePlugin {
 java {
     sourceCompatibility = JavaVersion.VERSION_17
     targetCompatibility = JavaVersion.VERSION_17
-    withSourcesJar()
-    withJavadocJar()
 }
 
 kotlin {
     jvmToolchain(17)
 }
 
+var group = ""
+var versionName = ""
+// included build 的 rootProject 指向 method-timer-plugin/ 目录
+// 因此需要 ../ 向上一级才能访问主项目的 gradle.properties
+val gradlePropsFile: File = project.rootProject.file("../gradle.properties")
 
-val versionName = "1.0.1"
-
-var signingKeyId = ""//签名的密钥后8位
-var signingPassword = ""//签名设置的密码
-var secretKeyRingFile = ""//生成的secring.gpg文件目录
-
-
-val localProperties: File = project.rootProject.file("../local.properties")
-
-if (localProperties.exists()) {
-    println("Found secret props file, loading props")
+if (gradlePropsFile.exists()) {
     val properties = Properties()
-
-    InputStreamReader(FileInputStream(localProperties), Charsets.UTF_8).use { reader ->
+    InputStreamReader(FileInputStream(gradlePropsFile), Charsets.UTF_8).use { reader ->
         properties.load(reader)
     }
-    signingKeyId = properties.getProperty("signing.keyId")
-    signingPassword = properties.getProperty("signing.password")
-    secretKeyRingFile = properties.getProperty("signing.secretKeyRingFile")
+    group = properties.getProperty("group")
+    versionName = properties.getProperty("versionName")
 
+    val signingKeyId = properties.getProperty("signing.keyId") ?: ""
+    val signingPassword = properties.getProperty("signing.password") ?: ""
+    val signingSecretKeyRingFile = properties.getProperty("signing.secretKeyRingFile") ?: ""
+
+    if (signingKeyId.isNotEmpty()) {
+        extra["signing.keyId"] = signingKeyId
+        extra["signing.password"] = signingPassword
+        extra["signing.secretKeyRingFile"] = signingSecretKeyRingFile
+    }
 } else {
-    println("No props file, loading env vars")
+    throw Error("gradle.properties not found")
 }
 
-afterEvaluate {
+mavenPublishing {
+    publishToMavenCentral()
+    signAllPublications()
+}
 
-    publishing {
-        publications {
-            create<MavenPublication>("release") {
-                from(components.findByName("release"))
-                groupId = "io.github.hequanli"
-                artifactId = "method-timer-plugin"
-                version = versionName
+mavenPublishing {
+    coordinates(group, "method-timer-plugin", versionName)
 
-                pom {
-                    name.value("method-timer-plugin")
-                    description.value("Bytecode instrumentation analysis of main thread method time consumption")
-                    url.value("https://github.com/HeQuanLi/MethodTimeMonitor")
+    pom {
+        name.value("method-timer-plugin")
+        description.value("Bytecode instrumentation analysis of main thread method time consumption")
+        inceptionYear = "2026"
+        url.value("https://github.com/HeQuanLi/MethodTimeMonitor")
 
-                    licenses {
-                        license {
-                            //协议类型
-                            name.value("The MIT License")
-                            url.value("https://github.com/HeQuanLi/MethodTimeMonitor/blob/main/LICENSE")
-                        }
-                    }
-
-                    developers {
-                        developer {
-                            id.value("HeQaunLi")
-                            name.value("HeQaunLi")
-                            email.value("Hunter94520@gmail.com")
-                        }
-                    }
-
-                    scm {
-                        connection.value("scm:git@github.com:HeQuanLi/MethodTimeMonitor")
-                        developerConnection.value("scm:git@github.com:HeQuanLi/MethodTimeMonitor")
-                        url.value("https://github.com/HeQuanLi/MethodTimeMonitor")
-                    }
-                }
+        licenses {
+            license {
+                name.value("The MIT License")
+                url.value("https://github.com/HeQuanLi/MethodTimeMonitor/blob/main/LICENSE")
+                distribution.set("https://github.com/HeQuanLi/MethodTimeMonitor/blob/main/LICENSE")
             }
         }
 
-        repositories {
-            maven {
-                setUrl("$rootDir/RepoDir")
+        developers {
+            developer {
+                id.value("HeQaunLi")
+                name.value("HeQaunLi")
+                email.value("Hunter94520@gmail.com")
             }
         }
-    }
 
-}
-
-if (signingKeyId.isNotEmpty() && signingPassword.isNotEmpty() && secretKeyRingFile.isNotEmpty()) {
-    apply(plugin = "signing")
-    
-    gradle.taskGraph.whenReady {
-        // if (allTasks.any { it is Sign }) {
-            allprojects {
-                extra["signing.keyId"] = signingKeyId
-                extra["signing.secretKeyRingFile"] = secretKeyRingFile
-                extra["signing.password"] = signingPassword
-            }
-        // }
-    }
-    
-    configure<SigningExtension> {
-        sign(publishing.publications)
+        scm {
+            connection.value("scm:git@github.com:HeQuanLi/MethodTimeMonitor")
+            developerConnection.value("scm:git@github.com:HeQuanLi/MethodTimeMonitor")
+            url.value("https://github.com/HeQuanLi/MethodTimeMonitor")
+        }
     }
 }

@@ -1,7 +1,7 @@
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
-    id("com.methodtimer.plugin")
+    alias(libs.plugins.method.timer)
 }
 
 android {
@@ -37,8 +37,8 @@ android {
 }
 
 dependencies {
-    implementation(project(":method-timer-runtime"))
-    
+//    implementation(project(":method-timer-runtime"))
+    implementation(libs.method.timer.runtime)
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.appcompat)
     implementation(libs.material)
