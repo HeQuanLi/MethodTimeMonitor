@@ -1,5 +1,5 @@
 # Android 方法耗时统计插件
-最新版本：1.0.0
+最新版本：1.0.1
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
@@ -14,6 +14,7 @@
 - ✅ 适配AGP 8.0+版本
 - ✅ 支持方法调用次数、平均耗时、最大/最小耗时统计
 - ✅ 自动打印功能，无需手动调用
+- ✅ 可配置插桩范围（仅项目代码 或 项目+所有依赖库）
 
 ## 快速开始
 
@@ -42,7 +43,7 @@ dependencyResolutionManagement {
 ```kotlin
 buildscript {
     dependencies {
-        classpath("io.github.hequanli:method-timer-plugin:1.0.0")
+        classpath("io.github.hequanli:method-timer-plugin:1.0.1")
     }
 }
 ```
@@ -59,15 +60,16 @@ plugins {
 }
 
 dependencies {
-    implementation("io.github.hequanli:method-timer-runtime:1.0.0")
+    implementation("io.github.hequanli:method-timer-runtime:1.0.1")
     // 其他依赖...
 }
 
 // 配置方法耗时统计插件
 methodTimer {
-    enabled.set(true)           // 启用插件
-    mainThreadOnly.set(true)    // 只监控主线程
-    minDuration.set(10L)        // 只记录超过10ms的方法
+    enabled.set(true)                    // 启用插件
+    mainThreadOnly.set(true)             // 只监控主线程
+    minDuration.set(10L)                 // 只记录超过10ms的方法
+    instrumentationScopeAll.set(false)   // 只插桩项目自身代码（推荐）
 }
 ```
 ### 4. 查看统计结果
@@ -144,11 +146,23 @@ public long getMinDuration()
 
 ```kotlin
 methodTimer {
-    enabled.set(true)           // 是否启用插件，默认true
-    mainThreadOnly.set(true)    // 是否只监控主线程，默认true
-    minDuration.set(10L)        // 最小记录时长(毫秒)，默认10ms
+    enabled.set(true)                    // 是否启用插件，默认 true
+    mainThreadOnly.set(true)             // 是否只监控主线程，默认 true
+    minDuration.set(10L)                 // 最小记录时长（毫秒），默认 10ms
+    instrumentationScopeAll.set(false)   // 插桩范围，默认 false
+                                         // false = 仅插桩项目自身代码（推荐）
+                                         // true  = 同时插桩所有依赖库（原始行为）
 }
 ```
+
+### `instrumentationScopeAll` 说明
+
+| 值 | 对应 AGP 枚举 | 插桩范围 | 适用场景 |
+|---|---|---|---|
+| `false`（默认） | `InstrumentationScope.PROJECT` | 仅项目自身的 class | 日常性能分析，推荐 |
+| `true` | `InstrumentationScope.ALL` | 项目 + 所有 AAR/JAR 依赖 | 需要分析三方库耗时时使用 |
+
+> **说明**：`false` 是 1.0.1 起的新默认值。相比原来的 `ALL`，它可以显著减少编译时的插桩工作量，并避免对 OkHttp、Retrofit、Kotlin 协程等三方库引入不必要的运行时计时开销。
 
 ## 技术实现
 
@@ -162,21 +176,24 @@ methodTimer {
 
 插件会自动过滤以下类型的方法，避免影响系统性能：
 
-- Android系统类 (`android.*`)
-- AndroidX类 (`androidx.*`)
-- Java标准库类 (`java.*`)
-- Kotlin标准库类 (`kotlin.*`)
-- 插件自身类 (`com.methodtimer.*`)
-- R资源类
+- Android 系统类（`android.*`）
+- AndroidX 类（`androidx.*`）
+- Java 标准库类（`java.*`）
+- Kotlin 标准库类（`kotlin.*`）
+- 插件自身 Runtime 类（`com.hql.methodtimer.*`）
+- R 资源类
 - 构造函数和静态初始化块
 - 抽象方法
 
+> **提示**：当 `instrumentationScopeAll` 为 `false`（默认）时，AGP 在流水线入口就已将所有依赖库 class 排除在外，上述过滤规则仅作用于项目自身代码，编译效率更高。
+
 ## 注意事项
 
-1. 插件会增加方法的执行时间（约1-2μs），但对性能影响很小
-2. 建议只在debug版本中启用，release版本关闭
-3. 可以通过`minDuration`参数过滤短时间方法，减少日志输出
+1. 插件会为每个被插桩的方法引入两次 `System.nanoTime()` 调用（约 1-2μs），对绝大多数方法性能影响可忽略
+2. 建议只在 debug 版本中启用，release 版本关闭：`enabled.set(BuildConfig.DEBUG)`
+3. 通过 `minDuration` 过滤短耗时方法，可显著减少日志输出量
 4. 统计数据存储在内存中，应用重启后会清空
+5. 推荐将 `instrumentationScopeAll` 保持默认的 `false`，避免对三方库造成不必要的插桩开销
 
 ## 版本要求
 

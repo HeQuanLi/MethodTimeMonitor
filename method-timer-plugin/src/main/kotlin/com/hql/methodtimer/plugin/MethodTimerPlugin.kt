@@ -15,9 +15,14 @@ class MethodTimerPlugin : Plugin<Project> {
         
         androidComponents.onVariants { variant ->
             if (extension.enabled.get()) {
+                val scope = if (extension.instrumentationScopeAll.get()) {
+                    InstrumentationScope.ALL
+                } else {
+                    InstrumentationScope.PROJECT
+                }
                 variant.instrumentation.transformClassesWith(
                     MethodTimerClassVisitorFactory::class.java,
-                    InstrumentationScope.ALL
+                    scope
                 ) { params ->
                     params.enabled.set(extension.enabled)
                     params.mainThreadOnly.set(extension.mainThreadOnly)

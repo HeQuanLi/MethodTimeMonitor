@@ -53,5 +53,6 @@ dependencies {
 methodTimer {
     enabled.set(true)
     mainThreadOnly.set(true)
-    minDuration.set(10L) // 只记录超过10ms的方法
+    minDuration.set(10L)
+    instrumentationScopeAll.set(false) // false=只插桩项目自身代码（推荐），true=同时插桩所有依赖库
 }
